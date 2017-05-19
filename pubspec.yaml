@@ -1,0 +1,11 @@
+name: mocha
+description: A simple caching library.
+version: 0.0.1
+homepage: https://github.com/thekeenant/mocha
+author: Keenan Thompson <keenan@keenant.com>
+
+environment:
+  sdk: '>=1.20.1 <2.0.0'
+
+dev_dependencies:
+  test: ^0.12.0

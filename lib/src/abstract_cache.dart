@@ -18,6 +18,17 @@ abstract class AbstractCache<K, V> implements Cache<K, V> {
   void putAll<T extends K, U extends V>(Map<T, U> map) {
     map.forEach((key, value) => put(key, value));
   }
+
+  @override
+  Future<Map<K, V>> getOrPutAll<T extends K>(Iterable<K> keys, Callable<K, V> callable) async {
+    var map = <K, V>{};
+
+    for (var key in keys) {
+      map[key] = await getOrPut(key, callable);
+    }
+
+    return map;
+  }
 }
 
 /// An abstract class extending [LoadingCache] which makes it easier for the

@@ -15,4 +15,8 @@ main() async {
   );
 
   print(await cache.get(4));
+
+  print(await cache.getOrPut(4, (key) async {
+    return "Overriden!";
+  }));
 }

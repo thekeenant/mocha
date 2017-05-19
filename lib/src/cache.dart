@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:mocha/src/cache_impl.dart';
 
+typedef Future<V> Callable<K, V>(K key);
+
 /// Key value cache where values are loaded manually and stored until they
 /// are evicted or manually invalidated.
 abstract class Cache<K, V> {
@@ -26,6 +28,14 @@ abstract class Cache<K, V> {
   /// be null if not present in the cache.
   Map<K, V> getAllPresent<T extends K>(Iterable<T> keys);
 
+  /// Returns the value associated with the key in this cache, first loading
+  /// the value into the cache via the [Callable] provided, if necessary.
+  Future<V> getOrPut(K key, Callable<K, V> callable);
+
+  /// Returns a map of values associated with the keys in this cache, first loading
+  /// the values into the cache via the [Callable] provided, if necessary.
+  Future<Map<K, V>> getOrPutAll<T extends K>(Iterable<T> keys, Callable<K, V> callable);
+
   /// Manually put a key, value into the cache.
   void put(K key, V value);
 
@@ -47,7 +57,7 @@ abstract class Cache<K, V> {
 
 /// A cache that can load values into the cache when they are not present.
 abstract class LoadingCache<K, V> implements Cache<K, V> {
-  factory LoadingCache(Refresher<K, V> refresher, {
+  factory LoadingCache(Callable<K, V> callable, {
     Duration expiresAfterWrite,
     int maximumSize
   }) {
@@ -55,7 +65,7 @@ abstract class LoadingCache<K, V> implements Cache<K, V> {
       expiresAfterWrite: expiresAfterWrite,
       maximumSize: maximumSize
     );
-    return new LoadingCacheImpl(delegate, refresher);
+    return new LoadingCacheImpl(delegate, callable);
   }
 
   /// Returns the value associated with the key in this cache, first loading

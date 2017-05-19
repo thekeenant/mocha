@@ -4,23 +4,11 @@ import 'package:mocha/src/abstract_cache.dart';
 import 'package:mocha/src/cache.dart';
 
 typedef void Invalidator<K>(K key);
-typedef Future<V> Refresher<K, V>(K key);
 
 class Reference {
   final DateTime timestamp;
-  Timer expireFuture;
 
-  Reference(Object key, Invalidator invalidator, {Duration expire}) : this.timestamp = new DateTime.now() {
-    if (expire != null) {
-      expireFuture = new Timer(expire, () => invalidator(key));
-    }
-  }
-
-  void invalidate() {
-    if (expireFuture != null) {
-      expireFuture.cancel();
-    }
-  }
+  Reference() : this.timestamp = new DateTime.now();
 }
 
 class CacheImpl<K, V> extends AbstractCache<K, V> {
@@ -68,20 +56,28 @@ class CacheImpl<K, V> extends AbstractCache<K, V> {
   }
 
   @override
+  Future<V> getOrPut(K key, Callable<K, V> callable) async {
+    V value = getIfPresent(key);
+    if (value == null) {
+      value = await callable(key);
+      put(key, value);
+    }
+    return value;
+  }
+
+  @override
   void put(K key, V value) {
     if (maximumSize != null && size + 1 > maximumSize) {
       _evict();
     }
 
-    _refs[key] = new Reference(key, invalidate, expire: expiresAfterWrite);
+    _refs[key] = new Reference();
     _keyToValue[key] = value;
   }
 
   @override
   void invalidate(K key) {
-    Reference ref = _refs[key];
-    _refs.remove(key);
-    ref?.invalidate();
+    var ref = _refs.remove(key);
     _keyToValue.remove(key);
   }
 
@@ -96,15 +92,15 @@ class CacheImpl<K, V> extends AbstractCache<K, V> {
 
 class LoadingCacheImpl<K, V> extends AbstractLoadingCache<K, V> {
   final Cache<K, V> _delegate;
-  Refresher<K, V> _refresher;
+  Callable<K, V> _callable;
 
-  LoadingCacheImpl(this._delegate, this._refresher);
+  LoadingCacheImpl(this._delegate, this._callable);
 
   @override
   Future<V> get(K key) async {
     V value = getIfPresent(key);
     if (value == null) {
-      value = await _refresher(key);
+      value = await _callable(key);
       put(key, value);
     }
     return value;
@@ -112,7 +108,7 @@ class LoadingCacheImpl<K, V> extends AbstractLoadingCache<K, V> {
 
   @override
   Future<Null> refresh(K key) async {
-    put(key, await _refresher(key));
+    put(key, await _callable(key));
   }
 
   // delegate
@@ -145,6 +141,16 @@ class LoadingCacheImpl<K, V> extends AbstractLoadingCache<K, V> {
   @override
   void putAll<T extends K, U extends V>(Map<T, U> map) {
     _delegate.putAll(map);
+  }
+
+  @override
+  Future<V> getOrPut(K key, Callable<K, V> callable) async {
+    return await _delegate.getOrPut(key, callable);
+  }
+
+  @override
+  Future<Map<K, V>> getOrPutAll<T extends dynamic>(Iterable<K> keys, Callable<K, V> callable) async {
+    return await _delegate.getOrPutAll(keys, callable);
   }
 
   @override

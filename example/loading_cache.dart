@@ -14,6 +14,7 @@ main() async {
     // > null
     print(cache.getIfPresent(1));
 
+    // populate 1 again
     await cache.refresh(1);
 
     // > '1 is cached'

@@ -77,7 +77,7 @@ class CacheImpl<K, V> extends AbstractCache<K, V> {
 
   @override
   void invalidate(K key) {
-    var ref = _refs.remove(key);
+    _refs.remove(key);
     _keyToValue.remove(key);
   }
 
@@ -149,7 +149,7 @@ class LoadingCacheImpl<K, V> extends AbstractLoadingCache<K, V> {
   }
 
   @override
-  Future<Map<K, V>> getOrPutAll<T extends dynamic>(Iterable<K> keys, Callable<K, V> callable) async {
+  Future<Map<K, V>> getOrPutAll<T extends K>(Iterable<K> keys, Callable<K, V> callable) async {
     return await _delegate.getOrPutAll(keys, callable);
   }
 
